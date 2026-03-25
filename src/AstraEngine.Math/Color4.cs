@@ -18,8 +18,6 @@ namespace AstraEngine.Math
         public float B { get; }
         public float A { get; }
 
-        public Vector3 WorldPosition { get; }
-
         public static Color4 Black => new(0f, 0f, 0f, 1f);
         public static Color4 White => new(1f, 1f, 1f, 1f);
         public static Color4 Transparent => new(0f, 0f, 0f, 0f);

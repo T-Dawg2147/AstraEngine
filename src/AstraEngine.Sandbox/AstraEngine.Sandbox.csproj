@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Astra.Graphics.DirectX\AstraEngine.Graphics.DirectX.csproj" />
     <ProjectReference Include="..\AstraEngine.Assets\AstraEngine.Assets.csproj" />
     <ProjectReference Include="..\AstraEngine.Core\AstraEngine.Core.csproj" />
     <ProjectReference Include="..\AstraEngine.Graphics.Abstractions\AstraEngine.Graphics.Abstractions.csproj" />

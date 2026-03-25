@@ -78,7 +78,7 @@ public sealed class SoftwareCommandList : ICommandList
                 continue;
             }
 
-            var triangleColor = ShadeTriangle(meshInstance.Material, faceNormal, v0.Color, v1.Color, v2.Color);
+            var triangleColor = ShadeTriangle(meshInstance.Material, faceNormal, v0, v1, v2);
             RasterizeTriangle(fb, v0, v1, v2, triangleColor);
         }
     }
@@ -89,12 +89,12 @@ public sealed class SoftwareCommandList : ICommandList
         _currentSwapChain = null;
     }
 
-    private Color4 ShadeTriangle(Material material, Vector3 normal, Color4 v0, Color4 v1, Color4 v2)
+    private Color4 ShadeTriangle(Material material, Vector3 normal, ProjectedVertex v0, ProjectedVertex v1, ProjectedVertex v2)
     {
         var baseColor = new Color4(
-            ((v0.R + v1.R + v2.R) / 3f) * material.BaseColor.R,
-            ((v0.G + v1.G + v2.G) / 3f) * material.BaseColor.G,
-            ((v0.B + v1.B + v2.B) / 3f) * material.BaseColor.B,
+            ((v0.Color.R + v1.Color.R + v2.Color.R) / 3f) * material.BaseColor.R,
+            ((v0.Color.G + v1.Color.G + v2.Color.G) / 3f) * material.BaseColor.G,
+            ((v0.Color.B + v1.Color.B + v2.Color.B) / 3f) * material.BaseColor.B,
             1f);
 
         var r = baseColor.R * _ambientLight.Color.R * _ambientLight.Intensity;
