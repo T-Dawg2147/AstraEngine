@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AstraEngine.Assets/AstraEngine.Assets.csproj" Id="691d947c-a2ae-4a12-99bd-de1997fba9ee" />
+    <Project Path="src/AstraEngine.Core/AstraEngine.Core.csproj" />
+    <Project Path="src/AstraEngine.Editor/AstraEngine.Editor.csproj" Id="89f62de0-d248-4918-804b-a034dcf51776" />
+    <Project Path="src/AstraEngine.Graphics.Abstractions/AstraEngine.Graphics.Abstractions.csproj" Id="13235234-76fb-4310-85e9-286f785d5149" />
+    <Project Path="src/AstraEngine.Graphics.DirectX/AstraEngine.Graphics.DirectX.csproj" />
+    <Project Path="src/AstraEngine.Graphics.OpenGL/AstraEngine.Graphics.OpenGL.csproj" Id="5568df25-4b22-4c75-80a9-6b2201378a4f" />
+    <Project Path="src/AstraEngine.Graphics.Software/AstraEngine.Graphics.Software.csproj" Id="f46f7677-21fb-46b9-a6eb-80d1ef038232" />
+    <Project Path="src/AstraEngine.Graphics.Vulkan/AstraEngine.Graphics.Vulkan.csproj" Id="538d1159-3842-4a73-869c-d062baf631f1" />
+    <Project Path="src/AstraEngine.Input/AstraEngine.Input.csproj" Id="7434a68e-16af-4869-bbe2-ea19fb762864" />
+    <Project Path="src/AstraEngine.Math/AstraEngine.Math.csproj" Id="a58b5e1d-f73f-4919-8438-405bb72f0485" />
+    <Project Path="src/AstraEngine.Platform/AstraEngine.Platform.csproj" Id="615ff172-ec51-40cb-8a02-ad9972b50158" />
+    <Project Path="src/AstraEngine.Sandbox/AstraEngine.Sandbox.csproj" Id="59783ed0-d91c-4d2c-8e73-d334fdc32126" />
+    <Project Path="src/AstraEngine.Scene/AstraEngine.Scene.csproj" Id="c4ff6835-276d-4a5a-bbb5-f31597fbc705" />
+    <Project Path="src/AstraEngine.Threading/AstraEngine.Threading.csproj" Id="6acfd0b8-67c5-4f3b-a48e-5bbd140ef677" />
+  </Folder>
+  <Folder Name="/tests/" />
+</Solution>

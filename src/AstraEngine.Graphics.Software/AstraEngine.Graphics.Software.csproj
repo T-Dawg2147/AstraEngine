@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<RootNamespace>AstraEngine.Graphics.Software</RootNamespace>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AstraEngine.Core\AstraEngine.Core.csproj" />
+    <ProjectReference Include="..\AstraEngine.Graphics.Abstractions\AstraEngine.Graphics.Abstractions.csproj" />
+    <ProjectReference Include="..\AstraEngine.Math\AstraEngine.Math.csproj" />
+    <ProjectReference Include="..\AstraEngine.Platform\AstraEngine.Platform.csproj" />
+    <ProjectReference Include="..\AstraEngine.Scene\AstraEngine.Scene.csproj" />
+  </ItemGroup>
+
+</Project>

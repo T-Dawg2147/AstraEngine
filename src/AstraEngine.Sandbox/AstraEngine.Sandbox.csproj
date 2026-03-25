@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Astra.Graphics.DirectX\AstraEngine.Graphics.DirectX.csproj" />
+    <ProjectReference Include="..\AstraEngine.Assets\AstraEngine.Assets.csproj" />
+    <ProjectReference Include="..\AstraEngine.Core\AstraEngine.Core.csproj" />
+    <ProjectReference Include="..\AstraEngine.Graphics.Abstractions\AstraEngine.Graphics.Abstractions.csproj" />
+    <ProjectReference Include="..\AstraEngine.Graphics.DirectX\AstraEngine.Graphics.DirectX.csproj" />
+    <ProjectReference Include="..\AstraEngine.Graphics.OpenGL\AstraEngine.Graphics.OpenGL.csproj" />
+    <ProjectReference Include="..\AstraEngine.Graphics.Software\AstraEngine.Graphics.Software.csproj" />
+    <ProjectReference Include="..\AstraEngine.Graphics.Vulkan\AstraEngine.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="..\AstraEngine.Input\AstraEngine.Input.csproj" />
+    <ProjectReference Include="..\AstraEngine.Math\AstraEngine.Math.csproj" />
+    <ProjectReference Include="..\AstraEngine.Platform\AstraEngine.Platform.csproj" />
+    <ProjectReference Include="..\AstraEngine.Scene\AstraEngine.Scene.csproj" />
+    <ProjectReference Include="..\AstraEngine.Threading\AstraEngine.Threading.csproj" />
+  </ItemGroup>
+
+</Project>

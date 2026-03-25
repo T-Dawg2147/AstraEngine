@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AstraEngine.Core\AstraEngine.Core.csproj" />
+    <ProjectReference Include="..\AstraEngine.Math\AstraEngine.Math.csproj" />
+    <ProjectReference Include="..\AstraEngine.Platform\AstraEngine.Platform.csproj" />
+    <ProjectReference Include="..\AstraEngine.Scene\AstraEngine.Scene.csproj" />
+  </ItemGroup>
+
+</Project>

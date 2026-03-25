@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<RootNamespace>AstraEngine.Input</RootNamespace>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AstraEngine.Core\AstraEngine.Core.csproj" />
+    <ProjectReference Include="..\AstraEngine.Platform\AstraEngine.Platform.csproj" />
+  </ItemGroup>
+
+</Project>

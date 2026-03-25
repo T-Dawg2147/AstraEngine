@@ -1,0 +1,195 @@
+﻿using AstraEngine.Core;
+using AstraEngine.Graphics;
+using AstraEngine.Graphics.OpenGL;
+using AstraEngine.Graphics.Software;
+using AstraEngine.Input;
+using AstraEngine.Math;
+using AstraEngine.Platform;
+using AstraEngine.Platform.Windows;
+using AstraEngine.Scene;
+using AstraEngine.Assets;
+
+namespace AstraEngine.Editor;
+
+public sealed class EditorApplication : IGameApplication
+{
+    private bool _initialized;
+    private WindowsWindow? _window;
+    private IRenderDevice? _device;
+    private ISwapChain? _swapChain;
+    private ICommandList? _commandList;
+    private InputManager? _input;
+    private Scene.Scene? _scene;
+    private AssetManager? _assets;
+    private ISceneObject? _selectedObject;
+    private float _timeAccumulator;
+
+    public void Initialize(EngineHost host)
+    {
+        _initialized = true;
+
+        PlatformServices.Initialize(new WindowsPlatform(), new NullFileSystem());
+
+        _window = (WindowsWindow)PlatformServices.Platform.CreateWindow(
+            $"AstraEngine Editor - {host.Config.AppName}",
+            host.Config.WindowWidth,
+            host.Config.WindowHeight);
+
+        _window.Resized += OnWindowResized;
+        _window.Closing += OnWindowClosing;
+        _window.MouseMoved += OnMouseMoved;
+
+        _input = new InputManager();
+        _assets = new AssetManager();
+
+        try
+        {
+            _window.InitializeOpenGl();
+            _device = new OpenGLRenderDevice();
+        }
+        catch
+        {
+            _device = new SoftwareRenderDevice();
+        }
+
+        _swapChain = _device.CreateSwapChain(_window);
+        _commandList = _device.CreateCommandList();
+
+        _scene = BuildDefaultScene();
+        _selectedObject = _scene.Objects.FirstOrDefault();
+
+        Logger.Info("Editor initialized.");
+    }
+
+    public void Update(in EngineTime time)
+    {
+        if (!_initialized || _window is null || _swapChain is null || _commandList is null || _input is null || _scene is null)
+        {
+            return;
+        }
+
+        _window.PollEvents();
+        _input.BeginFrame();
+
+        UpdateScene(_scene, (float)time.DeltaTime);
+
+        _timeAccumulator += (float)time.DeltaTime;
+
+        _commandList.Begin();
+        _commandList.ClearColor(_swapChain, new Color4(0.12f, 0.12f, 0.14f, 1f));
+
+        if (_commandList is SoftwareCommandList software)
+        {
+            var aspect = (float)_swapChain.Width / System.Math.Max(1, _swapChain.Height);
+
+            foreach (var obj in _scene.Objects)
+            {
+                if (obj is MeshEntity meshEntity && meshEntity.Visible)
+                {
+                    software.DrawMesh(meshEntity.Mesh, _scene.Camera, aspect);
+                }
+            }
+        }
+        else if (_commandList is OpenGLCommandList gl)
+        {
+            gl.Draw(3);
+        }
+
+        _commandList.End();
+        _swapChain.Present();
+
+        _window.SetTitle($"AstraEngine Editor | {_scene.Objects.Count} objects | Selected: {DescribeSelection()}");
+        _input.EndFrame();
+    }
+
+    public void Shutdown()
+    {
+        _commandList?.Dispose();
+        _swapChain?.Dispose();
+        _device?.Dispose();
+
+        if (_window is not null)
+        {
+            _window.MouseMoved -= OnMouseMoved;
+            _window.Resized -= OnWindowResized;
+            _window.Closing -= OnWindowClosing;
+            _window.Dispose();
+            _window = null;
+        }
+    }
+
+    private Scene.Scene BuildDefaultScene()
+    {
+        var scene = new Scene.Scene();
+        scene.Camera.Position = new Vector3(0f, 0f, -3f);
+
+        var cube = new MeshEntity(new MeshInstance(Mesh.CreateCube()))
+        {
+            Visible = true,
+            Material = new Material
+            {
+                Name = "EditorCubeMaterial",
+                BaseColor = new Color4(0.3f, 0.7f, 1f, 1f),
+                Roughness = 0.8f,
+                Metallic = 0.0f,
+                Opacity = 1.0f
+            }
+        };
+
+        scene.Add(cube);
+
+        scene.Lights.Add(new DirectionalLight
+        {
+            Direction = Vector3.Normalize(new Vector3(-0.5f, -1f, -0.25f)),
+            Color = new Color4(1f, 1f, 1f, 1f),
+            Intensity = 0.9f
+        });
+
+        scene.Lights.Add(new AmbientLight
+        {
+            Color = new Color4(0.15f, 0.15f, 0.18f, 1f),
+            Intensity = 1.0f
+        });
+
+        return scene;
+    }
+
+    private void UpdateScene(Scene.Scene scene, float dt)
+    {
+        if (scene.Objects.FirstOrDefault() is MeshEntity meshEntity)
+        {
+            meshEntity.Mesh.Rotation = Quaternion.CreateFromYawPitchRoll(_timeAccumulator * 0.6f, _timeAccumulator * 0.35f, _timeAccumulator * 0.2f);
+        }
+    }
+
+    private void OnMouseMoved(float dx, float dy)
+    {
+        if (_scene is null)
+        {
+            return;
+        }
+
+        _scene.Camera.Yaw += dx * 0.10f;
+        _scene.Camera.Pitch -= dy * 0.10f;
+        _scene.Camera.Pitch = System.Math.Clamp(_scene.Camera.Pitch, -89f, 89f);
+    }
+
+    private void OnWindowResized(WindowResizeEvent evt)
+    {
+        _swapChain?.Resize(evt.Width, evt.Height);
+    }
+
+    private void OnWindowClosing(WindowCloseEvent evt)
+    {
+    }
+
+    private string DescribeSelection()
+    {
+        return _selectedObject switch
+        {
+            MeshEntity mesh => mesh.Material.Name,
+            null => "None",
+            _ => _selectedObject.GetType().Name
+        };
+    }
+}
