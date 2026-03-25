@@ -32,9 +32,9 @@ namespace AstraEngine.Graphics
             Usage = usage;
         }
 
-        public int Width { get; }
-        public int Height { get; }
-        public PixelFormat Format { get; }
+        public int Width { get; init; }
+        public int Height { get; init; }
+        public PixelFormat Format { get; init; }
         public TextureUsage Usage { get; }
     }
 

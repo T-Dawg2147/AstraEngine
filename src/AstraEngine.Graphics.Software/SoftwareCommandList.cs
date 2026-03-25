@@ -68,25 +68,19 @@ public sealed class SoftwareCommandList : ICommandList
 
         for (var i = 0; i < mesh.Indices.Length; i += 3)
         {
-            var v0 = TransformVertex(mesh.Vertices[mesh.Indices[i + 0]], wvp);
-            var v1 = TransformVertex(mesh.Vertices[mesh.Indices[i + 1]], wvp);
-            var v2 = TransformVertex(mesh.Vertices[mesh.Indices[i + 2]], wvp);
+            var p0 = TransformVertex(mesh.Vertices[mesh.Indices[i + 0]], world, view, projection, wvp);
+            var p1 = TransformVertex(mesh.Vertices[mesh.Indices[i + 1]], world, view, projection, wvp);
+            var p2 = TransformVertex(mesh.Vertices[mesh.Indices[i + 2]], world, view, projection, wvp);
 
-            var faceNormal = Vector3.Normalize(Vector3.Cross(v1.WorldPosition - v0.WorldPosition, v2.WorldPosition - v0.WorldPosition));
-            if (Vector3.Dot(faceNormal, camera.Position - v0.WorldPosition) <= 0f)
+            var faceNormal = Vector3.Normalize(Vector3.Cross(p1.WorldPosition - p0.WorldPosition, p2.WorldPosition - p0.WorldPosition));
+            if (Vector3.Dot(faceNormal, camera.Position - p0.WorldPosition) <= 0f)
             {
                 continue;
             }
 
-            var triangleColor = ShadeTriangle(meshInstance.Material, faceNormal, v0, v1, v2);
-            RasterizeTriangle(fb, v0, v1, v2, triangleColor);
+            var triangleColor = ShadeTriangle(meshInstance.Material, faceNormal, p0, p1, p2);
+            RasterizeTriangle(fb, p0, p1, p2, triangleColor);
         }
-    }
-
-    public void Dispose()
-    {
-        _isRecording = false;
-        _currentSwapChain = null;
     }
 
     private Color4 ShadeTriangle(Material material, Vector3 normal, ProjectedVertex v0, ProjectedVertex v1, ProjectedVertex v2)
