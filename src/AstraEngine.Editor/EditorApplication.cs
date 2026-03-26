@@ -21,7 +21,7 @@ public sealed class EditorApplication : IGameApplication
     private InputManager? _input;
     private Scene.Scene? _scene;
     private AssetManager? _assets;
-    private ISceneObject? _selectedObject;
+    private EditorState? _editorState;
     private float _timeAccumulator;
 
     public void Initialize(EngineHost host)
@@ -55,11 +55,19 @@ public sealed class EditorApplication : IGameApplication
         _swapChain = _device.CreateSwapChain(_window);
         _commandList = _device.CreateCommandList();
 
+        // Give the software renderer access to assets for texture resolution
         if (_commandList is SoftwareCommandList softwareCmd)
+        {
             softwareCmd.SetAssetManager(_assets);
+        }
 
         _scene = BuildDefaultScene();
-        _selectedObject = _scene.Objects.FirstOrDefault();
+
+        _editorState = new EditorState
+        {
+            Scene = _scene,
+            SelectedObject = _scene.Objects.FirstOrDefault()
+        };
 
         Logger.Info("Editor initialized.");
     }
@@ -74,9 +82,14 @@ public sealed class EditorApplication : IGameApplication
         _window.PollEvents();
         _input.BeginFrame();
 
-        UpdateScene(_scene, (float)time.DeltaTime);
+        var dt = (float)time.DeltaTime;
 
-        _timeAccumulator += (float)time.DeltaTime;
+        // Camera movement with WASD + Q/E for vertical
+        UpdateCamera(_input.Current, _scene.Camera, dt);
+
+        UpdateScene(_scene, dt);
+
+        _timeAccumulator += dt;
 
         _commandList.Begin();
         _commandList.ClearColor(_swapChain, new Color4(0.12f, 0.12f, 0.14f, 1f));
@@ -111,7 +124,8 @@ public sealed class EditorApplication : IGameApplication
         _commandList.End();
         _swapChain.Present();
 
-        _window.SetTitle($"AstraEngine Editor | {_scene.Objects.Count} objects | Selected: {DescribeSelection()}");
+        var selectedName = _editorState?.SelectedName ?? "None";
+        _window.SetTitle($"AstraEngine Editor | {_scene.Objects.Count} objects | Selected: {selectedName}");
         _input.EndFrame();
     }
 
@@ -171,16 +185,49 @@ public sealed class EditorApplication : IGameApplication
     {
         if (scene.Objects.FirstOrDefault() is MeshEntity meshEntity)
         {
-            meshEntity.Mesh.Rotation = Quaternion.CreateFromYawPitchRoll(_timeAccumulator * 0.6f, _timeAccumulator * 0.35f, _timeAccumulator * 0.2f);
+            meshEntity.Mesh.Rotation = Quaternion.CreateFromYawPitchRoll(
+                _timeAccumulator * 0.6f,
+                _timeAccumulator * 0.35f,
+                _timeAccumulator * 0.2f);
         }
+    }
+
+    private static void UpdateCamera(InputState input, Camera camera, float dt)
+    {
+        const float moveSpeed = 3.0f;
+
+        var forward = camera.Forward;
+        var right = camera.Right;
+        var up = new Vector3(0f, 1f, 0f);
+        var movement = Vector3.Zero;
+
+        // WASD movement
+        if (input.IsKeyDown(KeyCode.W) || input.IsKeyDown(KeyCode.Up))
+            movement += forward;
+
+        if (input.IsKeyDown(KeyCode.S) || input.IsKeyDown(KeyCode.Down))
+            movement -= forward;
+
+        if (input.IsKeyDown(KeyCode.D) || input.IsKeyDown(KeyCode.Right))
+            movement += right;
+
+        if (input.IsKeyDown(KeyCode.A) || input.IsKeyDown(KeyCode.Left))
+            movement -= right;
+
+        // Q/E for vertical movement
+        if (input.IsKeyDown(KeyCode.E))
+            movement += up;
+
+        if (input.IsKeyDown(KeyCode.Q))
+            movement -= up;
+
+        camera.Position += movement * (moveSpeed * dt);
     }
 
     private void OnMouseMoved(float dx, float dy)
     {
         if (_scene is null)
-        {
             return;
-        }
 
         _scene.Camera.Yaw += dx * 0.10f;
         _scene.Camera.Pitch -= dy * 0.10f;
@@ -194,15 +241,5 @@ public sealed class EditorApplication : IGameApplication
 
     private void OnWindowClosing(WindowCloseEvent evt)
     {
-    }
-
-    private string DescribeSelection()
-    {
-        return _selectedObject switch
-        {
-            MeshEntity mesh => mesh.Material.Name,
-            null => "None",
-            _ => _selectedObject.GetType().Name
-        };
     }
 }
