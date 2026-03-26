@@ -18,6 +18,12 @@ public sealed class WindowsWindow : IWindow
     private int _lastMouseY;
     private bool _hasMoved;
 
+    // WM_KEYDOWN / WM_KEYUP constants
+    private const int WM_KEYDOWN = 0x0100;
+    private const int WM_KEYUP = 0x0101;
+    private const int WM_SYSKEYDOWN = 0x0104;
+    private const int WM_SYSKEYUP = 0x0105;
+
     static WindowsWindow()
     {
         RegisterWindowClass();
@@ -66,6 +72,12 @@ public sealed class WindowsWindow : IWindow
     public event Action<WindowResizeEvent>? Resized;
     public event Action<WindowCloseEvent>? Closing;
     public event Action<float, float>? MouseMoved;
+
+    /// <summary>
+    /// Fires when a key is pressed or released.
+    /// Parameters: (int virtualKeyCode, bool isDown)
+    /// </summary>
+    public event Action<int, bool>? KeyChanged;
 
     public void InitializeOpenGl()
     {
@@ -145,8 +157,8 @@ public sealed class WindowsWindow : IWindow
                         hdc,
                         0,
                         0,
-                        width,
-                        height,
+                        Width,   // stretch to current client width
+                        Height,  // stretch to current client height
                         0,
                         0,
                         width,
@@ -286,10 +298,47 @@ public sealed class WindowsWindow : IWindow
                     _lastMouseY = y;
                     _hasMoved = true;
                     return 0;
-                }                
+                }
+
+            case WM_KEYDOWN:
+            case WM_SYSKEYDOWN:
+                KeyChanged?.Invoke((int)wParam, true);
+                return 0;
+
+            case WM_KEYUP:
+            case WM_SYSKEYUP:
+                KeyChanged?.Invoke((int)wParam, false);
+                return 0;
 
             default:
                 return Win32Native.DefWindowProc(hWnd, msg, wParam, lParam);
         }
+    }
+
+    /// <summary>
+    /// Maps a Win32 virtual key code to an engine KeyCode.
+    /// </summary>
+    public static Input.KeyCode MapVirtualKey(int vk)
+    {
+        return vk switch
+        {
+            0x57 => Input.KeyCode.W,         // 'W'
+            0x41 => Input.KeyCode.A,         // 'A'
+            0x53 => Input.KeyCode.S,         // 'S'
+            0x44 => Input.KeyCode.D,         // 'D'
+            0x51 => Input.KeyCode.Q,         // 'Q'
+            0x45 => Input.KeyCode.E,         // 'E'
+            0x26 => Input.KeyCode.Up,        // VK_UP
+            0x28 => Input.KeyCode.Down,      // VK_DOWN
+            0x25 => Input.KeyCode.Left,      // VK_LEFT
+            0x27 => Input.KeyCode.Right,     // VK_RIGHT
+            0x20 => Input.KeyCode.Space,     // VK_SPACE
+            0x1B => Input.KeyCode.Escape,    // VK_ESCAPE
+            0xA0 => Input.KeyCode.LeftShift, // VK_LSHIFT
+            0xA1 => Input.KeyCode.RightShift,// VK_RSHIFT
+            0xA2 => Input.KeyCode.LeftControl,  // VK_LCONTROL
+            0xA3 => Input.KeyCode.RightControl, // VK_RCONTROL
+            _ => Input.KeyCode.Unknown
+        };
     }
 }

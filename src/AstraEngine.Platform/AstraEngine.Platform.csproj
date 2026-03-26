@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AstraEngine.Core\AstraEngine.Core.csproj" />
+    <ProjectReference Include="..\AstraEngine.Input\AstraEngine.Input.csproj" />
   </ItemGroup>
 
 </Project>
