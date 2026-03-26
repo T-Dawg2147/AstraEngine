@@ -34,6 +34,8 @@ namespace AstraEngine.Core
             Logger.Info($"Starting {Config.AppName}...");
             application.Initialize(this);
 
+            _lastTime = _stopwatch.Elapsed.TotalSeconds;
+
             while (_isRunning)
             {
                 var currentTime = _stopwatch.Elapsed.TotalSeconds;
@@ -57,8 +59,10 @@ namespace AstraEngine.Core
                     if (remaining > 0)
                     {
                         var sleepMs = (int)(remaining * 1000.0);
-                        if (sleepMs > 0)
-                            Thread.Sleep(sleepMs);
+                        if (sleepMs > 1)
+                            Thread.Sleep(1);
+                        else if (sleepMs > 0)
+                            Thread.Sleep(0);
                     }
                 }
             }

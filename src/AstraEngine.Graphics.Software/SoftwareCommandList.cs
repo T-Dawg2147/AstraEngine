@@ -38,6 +38,7 @@ public sealed class SoftwareCommandList : ICommandList
         {
             _currentSwapChain = softwareSwapChain;
             softwareSwapChain.FrameBuffer.Clear(color);
+            softwareSwapChain.FrameBuffer.ClearDepth();
         }
     }
 

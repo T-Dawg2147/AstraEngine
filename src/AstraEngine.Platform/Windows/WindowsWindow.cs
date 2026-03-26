@@ -72,11 +72,6 @@ public sealed class WindowsWindow : IWindow
     public event Action<WindowResizeEvent>? Resized;
     public event Action<WindowCloseEvent>? Closing;
     public event Action<float, float>? MouseMoved;
-
-    /// <summary>
-    /// Fires when a key is pressed or released.
-    /// Parameters: (int virtualKeyCode, bool isDown)
-    /// </summary>
     public event Action<int, bool>? KeyChanged;
 
     public void InitializeOpenGl()
@@ -157,8 +152,8 @@ public sealed class WindowsWindow : IWindow
                         hdc,
                         0,
                         0,
-                        Width,   // stretch to current client width
-                        Height,  // stretch to current client height
+                        Width,
+                        Height,
                         0,
                         0,
                         width,
@@ -229,7 +224,7 @@ public sealed class WindowsWindow : IWindow
             cbWndExtra = 0,
             hInstance = hInstance,
             hIcon = 0,
-            hCursor = 0,
+            hCursor = Win32Native.LoadCursor(0, Win32Native.IDC_ARROW),
             hbrBackground = 0,
             lpszMenuName = null,
             lpszClassName = WindowClassName,
@@ -285,6 +280,13 @@ public sealed class WindowsWindow : IWindow
                     Resized?.Invoke(new WindowResizeEvent(Width, Height));
                 }
                 return 0;
+
+            case Win32Native.WM_PAINT:
+                {
+                    Win32Native.BeginPaint(hWnd, out var ps);
+                    Win32Native.EndPaint(hWnd, ref ps);
+                    return 0;
+                }
 
             case Win32Native.WM_MOUSEMOVE:
                 {

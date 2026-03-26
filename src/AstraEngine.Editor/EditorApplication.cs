@@ -1,5 +1,6 @@
 ﻿using AstraEngine.Core;
 using AstraEngine.Graphics;
+using AstraEngine.Graphics.OpenGL;
 using AstraEngine.Graphics.Software;
 using AstraEngine.Input;
 using AstraEngine.Math;
@@ -13,7 +14,6 @@ namespace AstraEngine.Editor;
 public sealed class EditorApplication : IGameApplication
 {
     private bool _initialized;
-    private EngineHost? _host;
     private WindowsWindow? _window;
     private IRenderDevice? _device;
     private ISwapChain? _swapChain;
@@ -23,14 +23,10 @@ public sealed class EditorApplication : IGameApplication
     private AssetManager? _assets;
     private EditorState? _editorState;
     private float _timeAccumulator;
-    private int _frameCount;
-    private double _fpsTimer;
-    private double _currentFps;
 
     public void Initialize(EngineHost host)
     {
         _initialized = true;
-        _host = host;
 
         PlatformServices.Initialize(new WindowsPlatform(), new NullFileSystem());
 
@@ -42,15 +38,21 @@ public sealed class EditorApplication : IGameApplication
         _window.Resized += OnWindowResized;
         _window.Closing += OnWindowClosing;
         _window.MouseMoved += OnMouseMoved;
+
         _window.KeyChanged += OnKeyChanged;
 
         _input = new InputManager();
         _assets = new AssetManager();
 
-        // Use the software renderer — the OpenGL renderer currently only
-        // supports a hardcoded triangle and doesn't use scene data at all.
-        // We'll build out the OpenGL path properly in a future batch.
-        _device = new SoftwareRenderDevice();
+        try
+        {
+            _window.InitializeOpenGl();
+            _device = new OpenGLRenderDevice();
+        }
+        catch
+        {
+            _device = new SoftwareRenderDevice();
+        }
 
         _swapChain = _device.CreateSwapChain(_window);
         _commandList = _device.CreateCommandList();
@@ -78,31 +80,17 @@ public sealed class EditorApplication : IGameApplication
             return;
         }
 
-        // Check if the window was closed
-        if (!_window.IsOpen)
-        {
-            _host?.Stop();
-            return;
-        }
-
         _window.PollEvents();
         _input.BeginFrame();
 
         var dt = (float)time.DeltaTime;
 
+        // Camera movement with WASD + Q/E for vertical
         UpdateCamera(_input.Current, _scene.Camera, dt);
+
         UpdateScene(_scene, dt);
 
         _timeAccumulator += dt;
-
-        _frameCount++;
-        _fpsTimer += dt;
-        if (_fpsTimer >= 1.0)
-        {
-            _currentFps = _frameCount / _fpsTimer;
-            _frameCount = 0;
-            _fpsTimer -= 1.0;
-        }
 
         _commandList.Begin();
         _commandList.ClearColor(_swapChain, new Color4(0.12f, 0.12f, 0.14f, 1f));
@@ -111,7 +99,7 @@ public sealed class EditorApplication : IGameApplication
         {
             var aspect = (float)_swapChain.Width / System.Math.Max(1, _swapChain.Height);
 
-            // Pass scene lights to the software renderer every frame
+            // Pass scene lights to the software renderer
             var ambientLight = _scene.Lights.Lights.OfType<AmbientLight>().FirstOrDefault();
             if (ambientLight is not null)
             {
@@ -129,25 +117,29 @@ public sealed class EditorApplication : IGameApplication
                 }
             }
         }
+        else if (_commandList is OpenGLCommandList gl)
+        {
+            gl.Draw(3);
+        }
 
         _commandList.End();
         _swapChain.Present();
 
         var selectedName = _editorState?.SelectedName ?? "None";
-        _window.SetTitle($"AstraEngine Editor | {_scene.Objects.Count} objects | Selected: {selectedName} | FPS: {_currentFps:F0}");
+        _window.SetTitle($"AstraEngine Editor | {_scene.Objects.Count} objects | Selected: {selectedName}");
         _input.EndFrame();
     }
 
     public void Shutdown()
     {
-        _window.MouseMoved -= OnMouseMoved;
-        _window.KeyChanged -= OnKeyChanged;
         _commandList?.Dispose();
         _swapChain?.Dispose();
         _device?.Dispose();
 
         if (_window is not null)
         {
+            _window.KeyChanged -= OnKeyChanged;
+            _window.MouseMoved -= OnMouseMoved;
             _window.Resized -= OnWindowResized;
             _window.Closing -= OnWindowClosing;
             _window.Dispose();
@@ -211,6 +203,7 @@ public sealed class EditorApplication : IGameApplication
         var up = new Vector3(0f, 1f, 0f);
         var movement = Vector3.Zero;
 
+        // WASD movement
         if (input.IsKeyDown(KeyCode.W) || input.IsKeyDown(KeyCode.Up))
             movement += forward;
 
@@ -223,6 +216,7 @@ public sealed class EditorApplication : IGameApplication
         if (input.IsKeyDown(KeyCode.A) || input.IsKeyDown(KeyCode.Left))
             movement -= right;
 
+        // Q/E for vertical movement
         if (input.IsKeyDown(KeyCode.E))
             movement += up;
 
@@ -230,6 +224,18 @@ public sealed class EditorApplication : IGameApplication
             movement -= up;
 
         camera.Position += movement * (moveSpeed * dt);
+    }
+
+    private void OnKeyChanged(int virtualKeyCode, bool isDown)
+    {
+        if (_input is null)
+            return;
+
+        var engineKey = WindowsWindow.MapVirtualKey(virtualKeyCode);
+        if (engineKey != KeyCode.Unknown)
+        {
+            _input.HandleKeyEvent(new KeyEvent(engineKey, isDown));
+        }
     }
 
     private void OnMouseMoved(float dx, float dy)
@@ -242,16 +248,6 @@ public sealed class EditorApplication : IGameApplication
         _scene.Camera.Pitch = System.Math.Clamp(_scene.Camera.Pitch, -89f, 89f);
     }
 
-    private void OnKeyChanged(int virtualKey, bool isDown)
-    {
-        if (_input is null)
-            return;
-
-        var keyCode = WindowsWindow.MapVirtualKey(virtualKey);
-        if (keyCode != KeyCode.Unknown)
-            _input.HandleKeyEvent(new KeyEvent(keyCode, isDown));
-    }
-
     private void OnWindowResized(WindowResizeEvent evt)
     {
         _swapChain?.Resize(evt.Width, evt.Height);
@@ -259,6 +255,5 @@ public sealed class EditorApplication : IGameApplication
 
     private void OnWindowClosing(WindowCloseEvent evt)
     {
-        _host?.Stop();
     }
 }

@@ -9,6 +9,7 @@ internal static class Win32Native
     public const int WM_SIZE = 0x0005;
     public const int WM_QUIT = 0x0012;
     public const int WM_MOUSEMOVE = 0x0200;
+    public const int WM_PAINT = 0x000F;
 
     public const int WS_OVERLAPPEDWINDOW = 0x00CF0000;
     public const int WS_VISIBLE = 0x10000000;
@@ -31,6 +32,8 @@ internal static class Win32Native
     public const int PFD_DOUBLEBUFFER = 0x00000001;
     public const byte PFD_TYPE_RGBA = 0;
     public const byte PFD_MAIN_PLANE = 0;
+
+    public const int IDC_ARROW = 32512;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     internal struct WNDCLASSEX
@@ -131,6 +134,18 @@ internal static class Win32Native
         public int dwDamageMask;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct PAINTSTRUT
+    {
+        public nint hdc;
+        public bool fErase;
+        public RECT rcPaint;
+        public bool fRestore;
+        public bool fIncUpdate;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
+        public byte[] rgbReserved;
+    }
+
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     internal delegate nint WndProc(nint hWnd, uint msg, nint wParam, nint lParam);
 
@@ -227,4 +242,13 @@ internal static class Win32Native
 
     [DllImport("opengl32.dll", SetLastError = true)]
     internal static extern bool wglDeleteContext(nint hglrc);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern nint LoadCursor(nint hInstance, int lpCursorName);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern nint BeginPaint(nint hWnd, out PAINTSTRUT lpPaint);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern bool EndPaint(nint hWnd, ref PAINTSTRUT lpPaint);
 }
