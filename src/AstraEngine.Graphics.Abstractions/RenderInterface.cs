@@ -1,6 +1,7 @@
 ﻿using AstraEngine.Graphics.Abstractions;
 using AstraEngine.Math;
 using AstraEngine.Platform;
+using AstraEngine.Scene;
 
 namespace AstraEngine.Graphics
 {
@@ -56,5 +57,9 @@ namespace AstraEngine.Graphics
         void ClearColor(ISwapChain swapChain, Color4 color);
         void Draw(int vertexCount, int startVertextLocation = 0);
         void DrawIndexed(int indexCount, int startIndexLocation = 0, int baseVertextLocation = 0);
+
+        void SetLights(IEnumerable<Light> lights);
+        void SetAmbientLight(AmbientLight light);
+        void DrawMesh(MeshInstance meshInstance, Camera camera, float aspectRatio);
     }
 }

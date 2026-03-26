@@ -1,10 +1,5 @@
 ﻿using AstraEngine.Platform;
 using AstraEngine.Platform.Windows;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AstraEngine.Graphics.OpenGL
 {
@@ -17,14 +12,16 @@ namespace AstraEngine.Graphics.OpenGL
             _window = window ?? throw new ArgumentNullException(nameof(window));
             Width = window.Width;
             Height = window.Height;
+
+            _window.Resized += OnResized;
         }
 
         public WindowsWindow Window => (WindowsWindow)_window;
 
         public int Width { get; private set; }
         public int Height { get; private set; }
-        
-        public void Present() 
+
+        public void Present()
         {
             Window.SwapOpenGlBuffers();
         }
@@ -35,6 +32,12 @@ namespace AstraEngine.Graphics.OpenGL
             Height = height;
         }
 
-        public void Dispose() { }
+        public void Dispose()
+        {
+            _window.Resized -= OnResized;
+        }
+
+        private void OnResized(WindowResizeEvent e)
+            => Resize(e.Width, e.Height);
     }
 }

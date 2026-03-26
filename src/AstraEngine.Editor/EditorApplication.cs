@@ -38,7 +38,6 @@ public sealed class EditorApplication : IGameApplication
         _window.Resized += OnWindowResized;
         _window.Closing += OnWindowClosing;
         _window.MouseMoved += OnMouseMoved;
-
         _window.KeyChanged += OnKeyChanged;
 
         _input = new InputManager();
@@ -57,6 +56,7 @@ public sealed class EditorApplication : IGameApplication
         _swapChain = _device.CreateSwapChain(_window);
         _commandList = _device.CreateCommandList();
 
+        // Give the software renderer access to assets for texture resolution
         if (_commandList is SoftwareCommandList softwareCmd)
         {
             softwareCmd.SetAssetManager(_assets);
@@ -85,41 +85,34 @@ public sealed class EditorApplication : IGameApplication
 
         var dt = (float)time.DeltaTime;
 
-        // Camera movement with WASD + Q/E for vertical
         UpdateCamera(_input.Current, _scene.Camera, dt);
-
         UpdateScene(_scene, dt);
 
         _timeAccumulator += dt;
 
+        // --- Unified render path (works for both backends!) ---
         _commandList.Begin();
         _commandList.ClearColor(_swapChain, new Color4(0.12f, 0.12f, 0.14f, 1f));
 
-        if (_commandList is SoftwareCommandList software)
+        var aspect = (float)_swapChain.Width / System.Math.Max(1, _swapChain.Height);
+
+        // Set up lighting
+        var ambientLight = _scene.Lights.Lights.OfType<AmbientLight>().FirstOrDefault();
+        if (ambientLight is not null)
         {
-            var aspect = (float)_swapChain.Width / System.Math.Max(1, _swapChain.Height);
-
-            // Pass scene lights to the software renderer
-            var ambientLight = _scene.Lights.Lights.OfType<AmbientLight>().FirstOrDefault();
-            if (ambientLight is not null)
-            {
-                software.SetAmbientLight(ambientLight);
-            }
-
-            var nonAmbientLights = _scene.Lights.Lights.Where(l => l is not AmbientLight);
-            software.SetLights(nonAmbientLights);
-
-            foreach (var obj in _scene.Objects)
-            {
-                if (obj is MeshEntity meshEntity && meshEntity.Visible)
-                {
-                    software.DrawMesh(meshEntity.Mesh, _scene.Camera, aspect);
-                }
-            }
+            _commandList.SetAmbientLight(ambientLight);
         }
-        else if (_commandList is OpenGLCommandList gl)
+
+        var nonAmbientLights = _scene.Lights.Lights.Where(l => l is not AmbientLight);
+        _commandList.SetLights(nonAmbientLights);
+
+        // Draw all visible meshes
+        foreach (var obj in _scene.Objects)
         {
-            gl.Draw(3);
+            if (obj is MeshEntity meshEntity && meshEntity.Visible)
+            {
+                _commandList.DrawMesh(meshEntity.Mesh, _scene.Camera, aspect);
+            }
         }
 
         _commandList.End();
@@ -203,7 +196,6 @@ public sealed class EditorApplication : IGameApplication
         var up = new Vector3(0f, 1f, 0f);
         var movement = Vector3.Zero;
 
-        // WASD movement
         if (input.IsKeyDown(KeyCode.W) || input.IsKeyDown(KeyCode.Up))
             movement += forward;
 
@@ -216,7 +208,6 @@ public sealed class EditorApplication : IGameApplication
         if (input.IsKeyDown(KeyCode.A) || input.IsKeyDown(KeyCode.Left))
             movement -= right;
 
-        // Q/E for vertical movement
         if (input.IsKeyDown(KeyCode.E))
             movement += up;
 

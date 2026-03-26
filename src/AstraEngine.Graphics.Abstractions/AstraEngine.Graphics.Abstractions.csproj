@@ -11,6 +11,7 @@
     <ProjectReference Include="..\AstraEngine.Core\AstraEngine.Core.csproj" />
     <ProjectReference Include="..\AstraEngine.Math\AstraEngine.Math.csproj" />
     <ProjectReference Include="..\AstraEngine.Platform\AstraEngine.Platform.csproj" />
+    <ProjectReference Include="..\AstraEngine.Scene\AstraEngine.Scene.csproj" />
   </ItemGroup>
 
 </Project>

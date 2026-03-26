@@ -8,6 +8,7 @@ internal sealed class OpenGLBindings
     private static readonly Lazy<OpenGLBindings> _instance = new(() => new OpenGLBindings());
     public static OpenGLBindings Instance => _instance.Value;
 
+    // --- Existing delegates ---
     private delegate void GlClearColorDelegate(float red, float green, float blue, float alpha);
     private delegate void GlClearDelegate(uint mask);
     private delegate uint GlCreateShaderDelegate(uint type);
@@ -35,6 +36,20 @@ internal sealed class OpenGLBindings
     private delegate void GlDepthFuncDelegate(uint func);
     private delegate void GlCullFaceDelegate(uint mode);
 
+    // --- New delegates ---
+    private delegate int GlGetUniformLocationDelegate(uint program, string name);
+    private delegate void GlUniformMatrix4fvDelegate(int location, int count, bool transpose, nint value);
+    private delegate void GlUniform1fDelegate(int location, float v0);
+    private delegate void GlUniform1iDelegate(int location, int v0);
+    private delegate void GlUniform3fDelegate(int location, float v0, float v1, float v2);
+    private delegate void GlUniform4fDelegate(int location, float v0, float v1, float v2, float v3);
+    private delegate void GlDrawElementsDelegate(uint mode, int count, uint type, nint indices);
+    private delegate void GlFrontFaceDelegate(uint mode);
+    private delegate void GlDeleteProgramDelegate(uint program);
+    private delegate void GlDeleteVertexArraysDelegate(int n, ref uint arrays);
+    private delegate void GlDeleteBuffersDelegate(int n, ref uint buffers);
+
+    // --- Existing fields ---
     private readonly GlClearColorDelegate _clearColor;
     private readonly GlClearDelegate _clear;
     private readonly GlCreateShaderDelegate _createShader;
@@ -62,8 +77,22 @@ internal sealed class OpenGLBindings
     private readonly GlDepthFuncDelegate _depthFunc;
     private readonly GlCullFaceDelegate _cullFace;
 
+    // --- New fields ---
+    private readonly GlGetUniformLocationDelegate _getUniformLocation;
+    private readonly GlUniformMatrix4fvDelegate _uniformMatrix4fv;
+    private readonly GlUniform1fDelegate _uniform1f;
+    private readonly GlUniform1iDelegate _uniform1i;
+    private readonly GlUniform3fDelegate _uniform3f;
+    private readonly GlUniform4fDelegate _uniform4f;
+    private readonly GlDrawElementsDelegate _drawElements;
+    private readonly GlFrontFaceDelegate _frontFace;
+    private readonly GlDeleteProgramDelegate _deleteProgram;
+    private readonly GlDeleteVertexArraysDelegate _deleteVertexArrays;
+    private readonly GlDeleteBuffersDelegate _deleteBuffers;
+
     private OpenGLBindings()
     {
+        // --- Existing loads ---
         _clearColor = Load<GlClearColorDelegate>("glClearColor");
         _clear = Load<GlClearDelegate>("glClear");
         _createShader = Load<GlCreateShaderDelegate>("glCreateShader");
@@ -90,8 +119,22 @@ internal sealed class OpenGLBindings
         _enable = Load<GlEnableDelegate>("glEnable");
         _depthFunc = Load<GlDepthFuncDelegate>("glDepthFunc");
         _cullFace = Load<GlCullFaceDelegate>("glCullFace");
+
+        // --- New loads ---
+        _getUniformLocation = Load<GlGetUniformLocationDelegate>("glGetUniformLocation");
+        _uniformMatrix4fv = Load<GlUniformMatrix4fvDelegate>("glUniformMatrix4fv");
+        _uniform1f = Load<GlUniform1fDelegate>("glUniform1f");
+        _uniform1i = Load<GlUniform1iDelegate>("glUniform1i");
+        _uniform3f = Load<GlUniform3fDelegate>("glUniform3f");
+        _uniform4f = Load<GlUniform4fDelegate>("glUniform4f");
+        _drawElements = Load<GlDrawElementsDelegate>("glDrawElements");
+        _frontFace = Load<GlFrontFaceDelegate>("glFrontFace");
+        _deleteProgram = Load<GlDeleteProgramDelegate>("glDeleteProgram");
+        _deleteVertexArrays = Load<GlDeleteVertexArraysDelegate>("glDeleteVertexArrays");
+        _deleteBuffers = Load<GlDeleteBuffersDelegate>("glDeleteBuffers");
     }
 
+    // --- Existing public methods ---
     public void ClearColor(float r, float g, float b, float a) => _clearColor(r, g, b, a);
     public void Clear(uint mask) => _clear(mask);
     public uint CreateShader(uint type) => _createShader(type);
@@ -128,6 +171,25 @@ internal sealed class OpenGLBindings
     public void Enable(uint cap) => _enable(cap);
     public void DepthFunc(uint func) => _depthFunc(func);
     public void CullFace(uint mode) => _cullFace(mode);
+
+    // --- New public methods ---
+    public int GetUniformLocation(uint program, string name) => _getUniformLocation(program, name);
+
+    public void UniformMatrix4fv(int location, int count, bool transpose, nint value)
+        => _uniformMatrix4fv(location, count, transpose, value);
+
+    public void Uniform1f(int location, float v0) => _uniform1f(location, v0);
+    public void Uniform1i(int location, int v0) => _uniform1i(location, v0);
+    public void Uniform3f(int location, float v0, float v1, float v2) => _uniform3f(location, v0, v1, v2);
+    public void Uniform4f(int location, float v0, float v1, float v2, float v3) => _uniform4f(location, v0, v1, v2, v3);
+
+    public void DrawElements(uint mode, int count, uint type, nint indices)
+        => _drawElements(mode, count, type, indices);
+
+    public void FrontFace(uint mode) => _frontFace(mode);
+    public void DeleteProgram(uint program) => _deleteProgram(program);
+    public void DeleteVertexArrays(int n, ref uint arrays) => _deleteVertexArrays(n, ref arrays);
+    public void DeleteBuffers(int n, ref uint buffers) => _deleteBuffers(n, ref buffers);
 
     private static T Load<T>(string name) where T : Delegate
     {
