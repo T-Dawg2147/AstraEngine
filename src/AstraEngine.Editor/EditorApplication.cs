@@ -23,6 +23,9 @@ public sealed class EditorApplication : IGameApplication
     private AssetManager? _assets;
     private EditorState? _editorState;
     private float _timeAccumulator;
+    private int _frameCount;
+    private double _fpsTimer;
+    private double _currentFps;
 
     public void Initialize(EngineHost host)
     {
@@ -92,6 +95,15 @@ public sealed class EditorApplication : IGameApplication
 
         _timeAccumulator += dt;
 
+        _frameCount++;
+        _fpsTimer += dt;
+        if (_fpsTimer >= 1.0)
+        {
+            _currentFps = _frameCount / _fpsTimer;
+            _frameCount = 0;
+            _fpsTimer -= 1.0;
+        }
+
         _commandList.Begin();
         _commandList.ClearColor(_swapChain, new Color4(0.12f, 0.12f, 0.14f, 1f));
 
@@ -122,7 +134,7 @@ public sealed class EditorApplication : IGameApplication
         _swapChain.Present();
 
         var selectedName = _editorState?.SelectedName ?? "None";
-        _window.SetTitle($"AstraEngine Editor | {_scene.Objects.Count} objects | Selected: {selectedName}");
+        _window.SetTitle($"AstraEngine Editor | {_scene.Objects.Count} objects | Selected: {selectedName} | FPS: {_currentFps:F0}");
         _input.EndFrame();
     }
 

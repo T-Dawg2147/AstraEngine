@@ -39,6 +39,7 @@ namespace AstraEngine.Graphics.Software
         {
             var rgba = ToBgra32(color);
             Array.Fill(_pixels, rgba);
+            ClearDepth();
         }
 
         public void ClearDepth()
