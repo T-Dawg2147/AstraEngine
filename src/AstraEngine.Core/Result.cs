@@ -4,7 +4,9 @@
     {
         public Result(T? value, string? error, bool isSuccess)
         {
-
+            Value = value;
+            Error = error;
+            IsSuccess = isSuccess;
         }
 
         public bool IsSuccess { get; }

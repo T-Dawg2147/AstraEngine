@@ -9,6 +9,7 @@ internal static class ObjMeshLoader
     {
         var positions = new List<Vector3>();
         var normals = new List<Vector3>();
+        var texCoords = new List<Vector2>();
         var vertices = new List<Vertex>();
         var indices = new List<int>();
 
@@ -42,35 +43,64 @@ internal static class ObjMeshLoader
                         float.Parse(parts[3], System.Globalization.CultureInfo.InvariantCulture)));
                     break;
 
+                case "vt":
+                    texCoords.Add(new Vector2(
+                        float.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture),
+                        parts.Length >= 3
+                            ? float.Parse(parts[2], System.Globalization.CultureInfo.InvariantCulture)
+                            : 0f));
+                    break;
+
                 case "f":
                     if (parts.Length < 4)
                     {
                         continue;
                     }
 
-                    for (var i = 1; i <= 3; i++)
+                    // Triangulate faces with more than 3 vertices (fan triangulation)
+                    for (var i = 2; i < parts.Length - 1; i++)
                     {
-                        var face = parts[i];
-                        var faceParts = face.Split('/');
-
-                        var positionIndex = int.Parse(faceParts[0]) - 1;
-                        var normalIndex = faceParts.Length >= 3 && !string.IsNullOrWhiteSpace(faceParts[2])
-                            ? int.Parse(faceParts[2]) - 1
-                            : -1;
-
-                        var position = positions[positionIndex];
-                        var normal = normalIndex >= 0 && normalIndex < normals.Count
-                            ? normals[normalIndex]
-                            : Vector3.UnitZ;
-
-                        var vertex = new Vertex(position, normal, new Color4(1f, 1f, 1f, 1f));
-                        vertices.Add(vertex);
-                        indices.Add(vertices.Count - 1);
+                        AddFaceVertex(parts[1], positions, texCoords, normals, vertices, indices);
+                        AddFaceVertex(parts[i], positions, texCoords, normals, vertices, indices);
+                        AddFaceVertex(parts[i + 1], positions, texCoords, normals, vertices, indices);
                     }
                     break;
             }
         }
 
         return new Mesh(vertices.ToArray(), indices.ToArray());
+    }
+
+    private static void AddFaceVertex(
+        string face,
+        List<Vector3> positions,
+        List<Vector2> texCoords,
+        List<Vector3> normals,
+        List<Vertex> vertices,
+        List<int> indices)
+    {
+        var faceParts = face.Split('/');
+
+        var positionIndex = int.Parse(faceParts[0]) - 1;
+
+        var hasTexCoord = faceParts.Length >= 2 && !string.IsNullOrWhiteSpace(faceParts[1]);
+        var texCoordIndex = hasTexCoord ? int.Parse(faceParts[1]) - 1 : -1;
+
+        var hasNormal = faceParts.Length >= 3 && !string.IsNullOrWhiteSpace(faceParts[2]);
+        var normalIndex = hasNormal ? int.Parse(faceParts[2]) - 1 : -1;
+
+        var position = positions[positionIndex];
+
+        var normal = normalIndex >= 0 && normalIndex < normals.Count
+            ? normals[normalIndex]
+            : Vector3.UnitZ;
+
+        var uv = texCoordIndex >= 0 && texCoordIndex < texCoords.Count
+            ? texCoords[texCoordIndex]
+            : Vector2.Zero;
+
+        var vertex = new Vertex(position, normal, new Color4(1f, 1f, 1f, 1f), uv);
+        vertices.Add(vertex);
+        indices.Add(vertices.Count - 1);
     }
 }

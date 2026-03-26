@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace AstraEngine.Math
+﻿namespace AstraEngine.Math
 {
+    /// <summary>
+    /// 4x4 matrix using row-major convention.
+    /// Translation lives in (M14, M24, M34).
+    /// Matrix * Vector treats the vector as a column on the right.
+    /// Composition order: Scale * Rotation * Translation (SRT).
+    /// </summary>
     public readonly struct Matrix4x4
     {
         public Matrix4x4(
@@ -24,7 +24,7 @@ namespace AstraEngine.Math
         public float M12 { get; }
         public float M13 { get; }
         public float M14 { get; }
-        
+
         public float M21 { get; }
         public float M22 { get; }
         public float M23 { get; }
@@ -46,16 +46,16 @@ namespace AstraEngine.Math
             0f, 0f, 1f, 0f,
             0f, 0f, 0f, 1f);
 
-        public static Matrix4x4 CreateTranslation(Vector3 translation) => new(
-            1f, 0f, 0f, translation.X,
-            0f, 1f, 0f, translation.Y,
-            0f, 0f, 1f, translation.Z,
+        public static Matrix4x4 CreateTranslation(Vector3 t) => new(
+            1f, 0f, 0f, t.X,
+            0f, 1f, 0f, t.Y,
+            0f, 0f, 1f, t.Z,
             0f, 0f, 0f, 1f);
 
-        public static Matrix4x4 CreateScale(Vector3 scale) => new(
-            scale.X, 0f, 0f, 0f,
-            0f, scale.Y, 0f, 0f,
-            0f, 0f, scale.Z, 0f,
+        public static Matrix4x4 CreateScale(Vector3 s) => new(
+            s.X, 0f, 0f, 0f,
+            0f, s.Y, 0f, 0f,
+            0f, 0f, s.Z, 0f,
             0f, 0f, 0f, 1f);
 
         public static Matrix4x4 CreateRotation(Quaternion q)
@@ -71,9 +71,42 @@ namespace AstraEngine.Math
             var wz = q.W * q.Z;
 
             return new Matrix4x4(
-                1f - 2f * (yy + zz), 2f * (xy - wx), 2f * (xz + wy), 0f,
+                1f - 2f * (yy + zz), 2f * (xy - wz), 2f * (xz + wy), 0f,
                 2f * (xy + wz), 1f - 2f * (xx + zz), 2f * (yz - wx), 0f,
                 2f * (xz - wy), 2f * (yz + wx), 1f - 2f * (xx + yy), 0f,
+                0f, 0f, 0f, 1f);
+        }
+
+        public static Matrix4x4 CreateRotationX(float radians)
+        {
+            var c = System.MathF.Cos(radians);
+            var s = System.MathF.Sin(radians);
+            return new Matrix4x4(
+                1f, 0f, 0f, 0f,
+                0f, c, -s, 0f,
+                0f, s, c, 0f,
+                0f, 0f, 0f, 1f);
+        }
+
+        public static Matrix4x4 CreateRotationY(float radians)
+        {
+            var c = System.MathF.Cos(radians);
+            var s = System.MathF.Sin(radians);
+            return new Matrix4x4(
+                 c, 0f, s, 0f,
+                0f, 1f, 0f, 0f,
+                -s, 0f, c, 0f,
+                0f, 0f, 0f, 1f);
+        }
+
+        public static Matrix4x4 CreateRotationZ(float radians)
+        {
+            var c = System.MathF.Cos(radians);
+            var s = System.MathF.Sin(radians);
+            return new Matrix4x4(
+                 c, -s, 0f, 0f,
+                 s, c, 0f, 0f,
+                0f, 0f, 1f, 0f,
                 0f, 0f, 0f, 1f);
         }
 
@@ -89,30 +122,27 @@ namespace AstraEngine.Math
                 0f, 0f, -1f, 0f);
         }
 
-        public static Matrix4x4 CreateLookAt(Vector3 eye, Vector3 target, Vector3 up)
+        public static Matrix4x4 CreateOrthographic(float width, float height, float nearPlane, float farPlane)
         {
-            var zaxis = Normalize(eye - target);
-            var xaxis = Normalize(Cross(up, zaxis));
-            var yaxis = Cross(zaxis, xaxis);
-
+            var rangeInv = 1f / (nearPlane - farPlane);
             return new Matrix4x4(
-                xaxis.X, yaxis.X, zaxis.X, 0f,
-                xaxis.Y, yaxis.Y, zaxis.Y, 0f,
-                xaxis.Z, yaxis.Z, zaxis.Z, 0f,
-                -Dot(xaxis, eye), -Dot(yaxis, eye), -Dot(zaxis, eye), 1f);
+                2f / width, 0f, 0f, 0f,
+                0f, 2f / height, 0f, 0f,
+                0f, 0f, 2f * rangeInv, (farPlane + nearPlane) * rangeInv,
+                0f, 0f, 0f, 1f);
         }
 
-        private static float Dot(Vector3 a, Vector3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
-
-        private static Vector3 Cross(Vector3 a, Vector3 b) => new(
-            a.Y * b.Z - a.Z * b.Y,
-            a.Z * b.X - a.X * b.Z,
-            a.X * b.Y - a.Y * b.X);
-
-        private static Vector3 Normalize(Vector3 v)
+        public static Matrix4x4 CreateLookAt(Vector3 eye, Vector3 target, Vector3 up)
         {
-            var len = System.MathF.Sqrt(v.X * v.X + v.Y * v.Y + v.Z * v.Z);
-            return len > 0f ? new Vector3(v.X / len, v.Y / len, v.Z / len) : Vector3.Zero;
+            var zaxis = Vector3.Normalize(eye - target);
+            var xaxis = Vector3.Normalize(Vector3.Cross(up, zaxis));
+            var yaxis = Vector3.Cross(zaxis, xaxis);
+
+            return new Matrix4x4(
+                xaxis.X, xaxis.Y, xaxis.Z, -Vector3.Dot(xaxis, eye),
+                yaxis.X, yaxis.Y, yaxis.Z, -Vector3.Dot(yaxis, eye),
+                zaxis.X, zaxis.Y, zaxis.Z, -Vector3.Dot(zaxis, eye),
+                0f, 0f, 0f, 1f);
         }
 
         public static Matrix4x4 operator *(Matrix4x4 a, Matrix4x4 b)
@@ -147,5 +177,11 @@ namespace AstraEngine.Math
                 (M31 * v.X) + (M32 * v.Y) + (M33 * v.Z) + (M34 * v.W),
                 (M41 * v.X) + (M42 * v.Y) + (M43 * v.Z) + (M44 * v.W));
         }
+
+        public static Matrix4x4 Transpose(Matrix4x4 m) => new(
+            m.M11, m.M21, m.M31, m.M41,
+            m.M12, m.M22, m.M32, m.M42,
+            m.M13, m.M23, m.M33, m.M43,
+            m.M14, m.M24, m.M34, m.M44);
     }
 }

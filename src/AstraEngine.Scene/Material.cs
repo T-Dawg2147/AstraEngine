@@ -10,6 +10,9 @@ namespace AstraEngine.Scene
         public float Roughness { get; set; } = 1;
         public float Opacity { get; set; } = 1f;
 
+        /// <summary>
+        /// File path to the albedo texture for asset loading.
+        /// </summary>
         public string? AlbedoTexturePath { get; set; }
     }
 }

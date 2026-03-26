@@ -7,7 +7,7 @@
     {
         public Handle(uint id)
         {
-
+            Id = id;
         }
 
         public uint Id { get; }

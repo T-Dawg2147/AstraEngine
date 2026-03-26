@@ -26,7 +26,7 @@ namespace AstraEngine.Scene
 
                 var x = System.MathF.Cos(yawRad) * System.MathF.Cos(pitchRad);
                 var y = System.MathF.Sin(pitchRad);
-                var z = System.MathF.Sin(yawRad * System.MathF.Cos(pitchRad));
+                var z = System.MathF.Sin(yawRad) * System.MathF.Cos(pitchRad);
 
                 return Vector3.Normalize(new Vector3(x, y, z));
             }

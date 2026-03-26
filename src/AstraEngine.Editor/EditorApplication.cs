@@ -55,6 +55,9 @@ public sealed class EditorApplication : IGameApplication
         _swapChain = _device.CreateSwapChain(_window);
         _commandList = _device.CreateCommandList();
 
+        if (_commandList is SoftwareCommandList softwareCmd)
+            softwareCmd.SetAssetManager(_assets);
+
         _scene = BuildDefaultScene();
         _selectedObject = _scene.Objects.FirstOrDefault();
 
@@ -81,6 +84,16 @@ public sealed class EditorApplication : IGameApplication
         if (_commandList is SoftwareCommandList software)
         {
             var aspect = (float)_swapChain.Width / System.Math.Max(1, _swapChain.Height);
+
+            // Pass scene lights to the software renderer
+            var ambientLight = _scene.Lights.Lights.OfType<AmbientLight>().FirstOrDefault();
+            if (ambientLight is not null)
+            {
+                software.SetAmbientLight(ambientLight);
+            }
+
+            var nonAmbientLights = _scene.Lights.Lights.Where(l => l is not AmbientLight);
+            software.SetLights(nonAmbientLights);
 
             foreach (var obj in _scene.Objects)
             {
