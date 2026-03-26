@@ -10,6 +10,7 @@ public sealed class InputState
     public float MouseY { get; internal set; }
     public float MouseDeltaX { get; internal set; }
     public float MouseDeltaY { get; internal set; }
+    public float ScrollDelta { get; internal set; }
 
     public bool IsKeyDown(KeyCode key) => _keysDown.Contains(key);
     public bool WasKeyPressed(KeyCode key) => _keysPressed.Contains(key);
@@ -21,6 +22,7 @@ public sealed class InputState
         _keysReleased.Clear();
         MouseDeltaX = 0f;
         MouseDeltaY = 0f;
+        ScrollDelta = 0f;
     }
 
     internal void SetKey(KeyCode key, bool down)
@@ -51,5 +53,10 @@ public sealed class InputState
     {
         MouseX = x;
         MouseY = y;
+    }
+
+    internal void AddScrollDelta(float delta)
+    {
+        ScrollDelta += delta;
     }
 }

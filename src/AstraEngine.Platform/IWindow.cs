@@ -32,6 +32,8 @@
         event Action<WindowResizeEvent>? Resized;
         event Action<WindowCloseEvent>? Closing;
         event Action<float, float>? MouseMoved;
+        event Action<int, bool>? MouseButtonChanged;
+        event Action<float>? MouseScrolled;
 
         void PollEvents();
         void SetTitle(string title);

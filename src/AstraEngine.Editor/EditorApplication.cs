@@ -39,6 +39,8 @@ public sealed class EditorApplication : IGameApplication
         _window.Closing += OnWindowClosing;
         _window.MouseMoved += OnMouseMoved;
         _window.KeyChanged += OnKeyChanged;
+        _window.MouseButtonChanged += OnMouseButtonChanged;
+        _window.MouseScrolled += OnMouseScrolled;
 
         _input = new InputManager();
         _assets = new AssetManager();
@@ -85,12 +87,14 @@ public sealed class EditorApplication : IGameApplication
 
         var dt = (float)time.DeltaTime;
 
-        UpdateCamera(_input.Current, _scene.Camera, dt);
+        // Editor camera: orbit, pan, zoom, fly-through
+        UpdateEditorCamera(_input.Current, _scene.Camera, dt);
+
         UpdateScene(_scene, dt);
 
         _timeAccumulator += dt;
 
-        // --- Unified render path (works for both backends!) ---
+        // --- Unified render path ---
         _commandList.Begin();
         _commandList.ClearColor(_swapChain, new Color4(0.12f, 0.12f, 0.14f, 1f));
 
@@ -131,6 +135,8 @@ public sealed class EditorApplication : IGameApplication
 
         if (_window is not null)
         {
+            _window.MouseScrolled -= OnMouseScrolled;
+            _window.MouseButtonChanged -= OnMouseButtonChanged;
             _window.KeyChanged -= OnKeyChanged;
             _window.MouseMoved -= OnMouseMoved;
             _window.Resized -= OnWindowResized;
@@ -187,34 +193,77 @@ public sealed class EditorApplication : IGameApplication
         }
     }
 
-    private static void UpdateCamera(InputState input, Camera camera, float dt)
+    /// <summary>
+    /// Full editor camera: 
+    ///   Right-click + drag = orbit (yaw/pitch)
+    ///   Middle-click + drag = pan (translate right/up)
+    ///   Scroll wheel = zoom (move along forward)
+    ///   Right-click + WASD/QE = fly-through
+    ///   No button = nothing
+    /// </summary>
+    private static void UpdateEditorCamera(InputState input, Camera camera, float dt)
     {
-        const float moveSpeed = 3.0f;
+        const float orbitSensitivity = 0.15f;
+        const float panSensitivity = 0.005f;
+        const float zoomSpeed = 1.5f;
+        const float flySpeed = 3.0f;
 
-        var forward = camera.Forward;
-        var right = camera.Right;
-        var up = new Vector3(0f, 1f, 0f);
-        var movement = Vector3.Zero;
+        var rightHeld = input.IsKeyDown(KeyCode.MouseRight);
+        var middleHeld = input.IsKeyDown(KeyCode.MouseMiddle);
 
-        if (input.IsKeyDown(KeyCode.W) || input.IsKeyDown(KeyCode.Up))
-            movement += forward;
+        var dx = input.MouseDeltaX;
+        var dy = input.MouseDeltaY;
 
-        if (input.IsKeyDown(KeyCode.S) || input.IsKeyDown(KeyCode.Down))
-            movement -= forward;
+        // Right-click + drag = orbit (rotate yaw/pitch)
+        if (rightHeld && (dx != 0f || dy != 0f))
+        {
+            camera.Yaw += dx * orbitSensitivity;
+            camera.Pitch -= dy * orbitSensitivity;
+            camera.Pitch = System.Math.Clamp(camera.Pitch, -89f, 89f);
+        }
 
-        if (input.IsKeyDown(KeyCode.D) || input.IsKeyDown(KeyCode.Right))
-            movement += right;
+        // Middle-click + drag = pan (translate along camera right/up)
+        if (middleHeld && (dx != 0f || dy != 0f))
+        {
+            var right = camera.Right;
+            var up = camera.Up;
+            camera.Position += (right * (-dx * panSensitivity)) + (up * (dy * panSensitivity));
+        }
 
-        if (input.IsKeyDown(KeyCode.A) || input.IsKeyDown(KeyCode.Left))
-            movement -= right;
+        // Scroll wheel = zoom (move along forward axis)
+        if (input.ScrollDelta != 0f)
+        {
+            camera.Position += camera.Forward * (input.ScrollDelta * zoomSpeed);
+        }
 
-        if (input.IsKeyDown(KeyCode.E))
-            movement += up;
+        // Right-click + WASD/QE = fly-through movement
+        if (rightHeld)
+        {
+            var forward = camera.Forward;
+            var right = camera.Right;
+            var up = new Vector3(0f, 1f, 0f);
+            var movement = Vector3.Zero;
 
-        if (input.IsKeyDown(KeyCode.Q))
-            movement -= up;
+            if (input.IsKeyDown(KeyCode.W) || input.IsKeyDown(KeyCode.Up))
+                movement += forward;
 
-        camera.Position += movement * (moveSpeed * dt);
+            if (input.IsKeyDown(KeyCode.S) || input.IsKeyDown(KeyCode.Down))
+                movement -= forward;
+
+            if (input.IsKeyDown(KeyCode.D) || input.IsKeyDown(KeyCode.Right))
+                movement += right;
+
+            if (input.IsKeyDown(KeyCode.A) || input.IsKeyDown(KeyCode.Left))
+                movement -= right;
+
+            if (input.IsKeyDown(KeyCode.E))
+                movement += up;
+
+            if (input.IsKeyDown(KeyCode.Q))
+                movement -= up;
+
+            camera.Position += movement * (flySpeed * dt);
+        }
     }
 
     private void OnKeyChanged(int virtualKeyCode, bool isDown)
@@ -229,14 +278,26 @@ public sealed class EditorApplication : IGameApplication
         }
     }
 
-    private void OnMouseMoved(float dx, float dy)
+    private void OnMouseButtonChanged(int button, bool isDown)
     {
-        if (_scene is null)
+        if (_input is null)
             return;
 
-        _scene.Camera.Yaw += dx * 0.10f;
-        _scene.Camera.Pitch -= dy * 0.10f;
-        _scene.Camera.Pitch = System.Math.Clamp(_scene.Camera.Pitch, -89f, 89f);
+        var engineKey = WindowsWindow.MapMouseButton(button);
+        if (engineKey != KeyCode.Unknown)
+        {
+            _input.HandleMouseButton(new MouseButtonEvent(engineKey, isDown));
+        }
+    }
+
+    private void OnMouseScrolled(float delta)
+    {
+        _input?.HandleMouseScroll(new MouseScrollEvent(delta));
+    }
+
+    private void OnMouseMoved(float dx, float dy)
+    {
+        _input?.HandleMouseMove(new MouseMoveEvent(dx, dy));
     }
 
     private void OnWindowResized(WindowResizeEvent evt)
@@ -246,5 +307,6 @@ public sealed class EditorApplication : IGameApplication
 
     private void OnWindowClosing(WindowCloseEvent evt)
     {
+
     }
 }

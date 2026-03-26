@@ -26,6 +26,8 @@ namespace AstraEngine.Platform
         public event Action<WindowResizeEvent>? Resized;
         public event Action<WindowCloseEvent>? Closing;
         public event Action<float, float>? MouseMoved;
+        public event Action<int, bool>? MouseButtonChanged;
+        public event Action<float>? MouseScrolled;
 
         public void PollEvents()
         {

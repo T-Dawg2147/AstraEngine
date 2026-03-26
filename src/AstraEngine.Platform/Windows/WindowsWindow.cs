@@ -73,6 +73,8 @@ public sealed class WindowsWindow : IWindow
     public event Action<WindowCloseEvent>? Closing;
     public event Action<float, float>? MouseMoved;
     public event Action<int, bool>? KeyChanged;
+    public event Action<int, bool>? MouseButtonChanged;
+    public event Action<float>? MouseScrolled;
 
     public void InitializeOpenGl()
     {
@@ -108,6 +110,12 @@ public sealed class WindowsWindow : IWindow
     {
         while (Win32Native.PeekMessage(out var msg, 0, 0, 0, Win32Native.PM_REMOVE))
         {
+            if (msg.message == Win32Native.WM_QUIT)
+            {
+                _isOpen = false;
+                break;
+            }
+
             Win32Native.TranslateMessage(ref msg);
             Win32Native.DispatchMessage(ref msg);
         }
@@ -121,55 +129,42 @@ public sealed class WindowsWindow : IWindow
 
     public void Present(ReadOnlySpan<int> pixels, int width, int height)
     {
-        if (_hWnd == 0 || pixels.IsEmpty)
+        if (width <= 0 || height <= 0)
             return;
 
         var hdc = Win32Native.GetDC(_hWnd);
         if (hdc == 0)
             return;
 
-        try
+        var bmi = new Win32Native.BITMAPINFO
         {
-            var bmi = new Win32Native.BITMAPINFO
+            bmiHeader = new Win32Native.BITMAPINFOHEADER
             {
-                bmiHeader = new Win32Native.BITMAPINFOHEADER
-                {
-                    biSize = (uint)Marshal.SizeOf<Win32Native.BITMAPINFOHEADER>(),
-                    biWidth = width,
-                    biHeight = -height,
-                    biPlanes = 1,
-                    biBitCount = 32,
-                    biCompression = 0,
-                    biSizeImage = (uint)(width * height * 4)
-                }
-            };
-
-            unsafe
-            {
-                fixed (int* pPixels = pixels)
-                {
-                    Win32Native.StretchDIBits(
-                        hdc,
-                        0,
-                        0,
-                        Width,
-                        Height,
-                        0,
-                        0,
-                        width,
-                        height,
-                        (nint)pPixels,
-                        ref bmi,
-                        Win32Native.DIB_RGB_COLORS,
-                        Win32Native.SRCCOPY);
-                }
+                biSize = (uint)Marshal.SizeOf<Win32Native.BITMAPINFOHEADER>(),
+                biWidth = width,
+                biHeight = -height,
+                biPlanes = 1,
+                biBitCount = 32,
+                biCompression = 0,
             }
-        }
-        finally
+        };
+
+        if (Win32Native.GetClientRect(_hWnd, out var clientRect))
         {
-            if (_hdc == 0)
-                Win32Native.ReleaseDC(_hWnd, hdc);
+            var clientWidth = clientRect.Right - clientRect.Left;
+            var clientHeight = clientRect.Bottom - clientRect.Top;
+
+            Win32Native.StretchDIBits(
+                hdc,
+                0, 0, clientWidth, clientHeight,
+                0, 0, width, height,
+                pixels.ToArray(),
+                ref bmi,
+                Win32Native.DIB_RGB_COLORS,
+                Win32Native.SRCCOPY);
         }
+
+        Win32Native.ReleaseDC(_hWnd, hdc);
     }
 
     public void SwapOpenGlBuffers()
@@ -181,9 +176,7 @@ public sealed class WindowsWindow : IWindow
     public void Close()
     {
         if (!_isOpen)
-        {
             return;
-        }
 
         Closing?.Invoke(new WindowCloseEvent());
         _isOpen = false;
@@ -192,8 +185,6 @@ public sealed class WindowsWindow : IWindow
 
     public void Dispose()
     {
-        Close();
-
         if (_hglrc != 0)
         {
             Win32Native.wglMakeCurrent(0, 0);
@@ -220,13 +211,9 @@ public sealed class WindowsWindow : IWindow
             cbSize = (uint)Marshal.SizeOf<Win32Native.WNDCLASSEX>(),
             style = (uint)(Win32Native.CS_HREDRAW | Win32Native.CS_VREDRAW),
             lpfnWndProc = WindowProcedureDelegate,
-            cbClsExtra = 0,
-            cbWndExtra = 0,
             hInstance = hInstance,
-            hIcon = 0,
             hCursor = Win32Native.LoadCursor(0, Win32Native.IDC_ARROW),
             hbrBackground = 0,
-            lpszMenuName = null,
             lpszClassName = WindowClassName,
             hIconSm = 0
         };
@@ -302,6 +289,38 @@ public sealed class WindowsWindow : IWindow
                     return 0;
                 }
 
+            case Win32Native.WM_LBUTTONDOWN:
+                MouseButtonChanged?.Invoke(0, true);   // 0 = left
+                return 0;
+
+            case Win32Native.WM_LBUTTONUP:
+                MouseButtonChanged?.Invoke(0, false);
+                return 0;
+
+            case Win32Native.WM_RBUTTONDOWN:
+                MouseButtonChanged?.Invoke(1, true);   // 1 = right
+                return 0;
+
+            case Win32Native.WM_RBUTTONUP:
+                MouseButtonChanged?.Invoke(1, false);
+                return 0;
+
+            case Win32Native.WM_MBUTTONDOWN:
+                MouseButtonChanged?.Invoke(2, true);   // 2 = middle
+                return 0;
+
+            case Win32Native.WM_MBUTTONUP:
+                MouseButtonChanged?.Invoke(2, false);
+                return 0;
+
+            case Win32Native.WM_MOUSEWHEEL:
+                {
+                    // High word of wParam is the wheel delta (typically ±120)
+                    var delta = unchecked((short)((wParam.ToInt64() >> 16) & 0xFFFF));
+                    MouseScrolled?.Invoke(delta / 120f);
+                    return 0;
+                }
+
             case WM_KEYDOWN:
             case WM_SYSKEYDOWN:
                 KeyChanged?.Invoke((int)wParam, true);
@@ -340,6 +359,20 @@ public sealed class WindowsWindow : IWindow
             0xA1 => Input.KeyCode.RightShift,// VK_RSHIFT
             0xA2 => Input.KeyCode.LeftControl,  // VK_LCONTROL
             0xA3 => Input.KeyCode.RightControl, // VK_RCONTROL
+            _ => Input.KeyCode.Unknown
+        };
+    }
+
+    /// <summary>
+    /// Maps a Win32 mouse button index (0=left, 1=right, 2=middle) to an engine KeyCode.
+    /// </summary>
+    public static Input.KeyCode MapMouseButton(int button)
+    {
+        return button switch
+        {
+            0 => Input.KeyCode.MouseLeft,
+            1 => Input.KeyCode.MouseRight,
+            2 => Input.KeyCode.MouseMiddle,
             _ => Input.KeyCode.Unknown
         };
     }

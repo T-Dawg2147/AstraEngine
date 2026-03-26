@@ -38,6 +38,6 @@ public sealed class InputManager
 
     public void HandleMouseScroll(in MouseScrollEvent scrollEvent)
     {
-        // Reserved for future scroll state.
+        Current.AddScrollDelta(scrollEvent.Delta);
     }
 }

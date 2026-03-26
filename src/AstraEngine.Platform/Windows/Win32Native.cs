@@ -11,6 +11,15 @@ internal static class Win32Native
     public const int WM_MOUSEMOVE = 0x0200;
     public const int WM_PAINT = 0x000F;
 
+    // Mouse button messages
+    public const int WM_LBUTTONDOWN = 0x0201;
+    public const int WM_LBUTTONUP = 0x0202;
+    public const int WM_RBUTTONDOWN = 0x0204;
+    public const int WM_RBUTTONUP = 0x0205;
+    public const int WM_MBUTTONDOWN = 0x0207;
+    public const int WM_MBUTTONUP = 0x0208;
+    public const int WM_MOUSEWHEEL = 0x020A;
+
     public const int WS_OVERLAPPEDWINDOW = 0x00CF0000;
     public const int WS_VISIBLE = 0x10000000;
 
@@ -129,13 +138,13 @@ internal static class Win32Native
         public byte cAuxBuffers;
         public byte iLayerType;
         public byte bReserved;
-        public int dwLayerMask;
-        public int dwVisibleMask;
-        public int dwDamageMask;
+        public uint dwLayerMask;
+        public uint dwVisibleMask;
+        public uint dwDamageMask;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    internal struct PAINTSTRUT
+    internal struct PAINTSTRUCT
     {
         public nint hdc;
         public bool fErase;
@@ -146,7 +155,6 @@ internal static class Win32Native
         public byte[] rgbReserved;
     }
 
-    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     internal delegate nint WndProc(nint hWnd, uint msg, nint wParam, nint lParam);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -154,101 +162,100 @@ internal static class Win32Native
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     internal static extern nint CreateWindowEx(
-        int dwExStyle,
-        string lpClassName,
-        string lpWindowName,
-        int dwStyle,
-        int x,
-        int y,
-        int nWidth,
-        int nHeight,
-        nint hWndParent,
-        nint hMenu,
-        nint hInstance,
-        nint lpParam);
+        int dwExStyle, string lpClassName, string lpWindowName,
+        int dwStyle, int x, int y, int nWidth, int nHeight,
+        nint hWndParent, nint hMenu, nint hInstance, nint lpParam);
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll")]
     internal static extern bool ShowWindow(nint hWnd, uint nCmdShow);
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll")]
     internal static extern bool UpdateWindow(nint hWnd);
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll")]
     internal static extern bool DestroyWindow(nint hWnd);
 
-    [DllImport("user32.dll", SetLastError = true)]
-    internal static extern bool PeekMessage(out MSG lpMsg, nint hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    internal static extern bool TranslateMessage([In] ref MSG lpMsg);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    internal static extern nint DispatchMessage([In] ref MSG lpMsg);
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    internal static extern bool SetWindowText(nint hWnd, string lpString);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    internal static extern bool GetClientRect(nint hWnd, out RECT lpRect);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    internal static extern nint GetModuleHandle(string? lpModuleName);
-
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll")]
     internal static extern nint DefWindowProc(nint hWnd, uint msg, nint wParam, nint lParam);
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool PeekMessage(out MSG lpMsg, nint hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg);
+
+    [DllImport("user32.dll")]
+    internal static extern bool TranslateMessage(ref MSG lpMsg);
+
+    [DllImport("user32.dll")]
+    internal static extern nint DispatchMessage(ref MSG lpMsg);
+
+    [DllImport("user32.dll")]
+    internal static extern bool GetClientRect(nint hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    internal static extern bool SetWindowText(nint hWnd, string lpString);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    internal static extern nint GetModuleHandle(string? lpModuleName);
+
+    [DllImport("user32.dll")]
     internal static extern nint SetWindowLongPtr(nint hWnd, int nIndex, nint dwNewLong);
 
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll")]
     internal static extern nint GetWindowLongPtr(nint hWnd, int nIndex);
 
-    [DllImport("user32.dll", SetLastError = true)]
-    internal static extern nint GetDC(nint hWnd);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    internal static extern int ReleaseDC(nint hWnd, nint hDC);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    internal static extern int StretchDIBits(
-        nint hdc,
-        int xDest,
-        int yDest,
-        int DestWidth,
-        int DestHeight,
-        int xSrc,
-        int ySrc,
-        int SrcWidth,
-        int SrcHeight,
-        nint lpBits,
-        ref BITMAPINFO lpbmi,
-        uint iUsage,
-        uint rop);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    internal static extern int ChoosePixelFormat(nint hdc, ref PIXELFORMATDESCRIPTOR ppfd);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    internal static extern bool SetPixelFormat(nint hdc, int iPixelFormat, ref PIXELFORMATDESCRIPTOR ppfd);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    internal static extern nint SwapBuffers(nint hdc);
-
-    [DllImport("opengl32.dll", SetLastError = true)]
-    internal static extern nint wglCreateContext(nint hdc);
-
-    [DllImport("opengl32.dll", SetLastError = true)]
-    internal static extern bool wglMakeCurrent(nint hdc, nint hglrc);
-
-    [DllImport("opengl32.dll", SetLastError = true)]
-    internal static extern bool wglDeleteContext(nint hglrc);
-
-    [DllImport("user32.dll", SetLastError = true)]
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     internal static extern nint LoadCursor(nint hInstance, int lpCursorName);
 
-    [DllImport("user32.dll", SetLastError = true)]
-    internal static extern nint BeginPaint(nint hWnd, out PAINTSTRUT lpPaint);
+    [DllImport("user32.dll")]
+    internal static extern nint BeginPaint(nint hWnd, out PAINTSTRUCT lpPaint);
 
-    [DllImport("user32.dll", SetLastError = true)]
-    internal static extern bool EndPaint(nint hWnd, ref PAINTSTRUT lpPaint);
+    [DllImport("user32.dll")]
+    internal static extern bool EndPaint(nint hWnd, ref PAINTSTRUCT lpPaint);
+
+    [DllImport("gdi32.dll")]
+    internal static extern nint CreateCompatibleDC(nint hdc);
+
+    [DllImport("gdi32.dll")]
+    internal static extern bool DeleteDC(nint hdc);
+
+    [DllImport("gdi32.dll")]
+    internal static extern int StretchDIBits(
+        nint hdc,
+        int xDest, int yDest, int destWidth, int destHeight,
+        int xSrc, int ySrc, int srcWidth, int srcHeight,
+        int[] lpBits, ref BITMAPINFO lpBitsInfo,
+        uint iUsage, uint dwRop);
+
+    [DllImport("user32.dll")]
+    internal static extern nint GetDC(nint hWnd);
+
+    [DllImport("user32.dll")]
+    internal static extern int ReleaseDC(nint hWnd, nint hDC);
+
+    [DllImport("gdi32.dll")]
+    internal static extern int ChoosePixelFormat(nint hdc, ref PIXELFORMATDESCRIPTOR ppfd);
+
+    [DllImport("gdi32.dll")]
+    internal static extern bool SetPixelFormat(nint hdc, int format, ref PIXELFORMATDESCRIPTOR ppfd);
+
+    [DllImport("opengl32.dll")]
+    internal static extern nint wglCreateContext(nint hdc);
+
+    [DllImport("opengl32.dll")]
+    internal static extern bool wglMakeCurrent(nint hdc, nint hglrc);
+
+    [DllImport("opengl32.dll")]
+    internal static extern bool wglDeleteContext(nint hglrc);
+
+    [DllImport("gdi32.dll")]
+    internal static extern bool SwapBuffers(nint hdc);
+
+    [DllImport("opengl32.dll", CharSet = CharSet.Ansi)]
+    internal static extern nint wglGetProcAddress(string lpszProc);
+
+    [DllImport("opengl32.dll", CharSet = CharSet.Ansi)]
+    internal static extern nint GetProcAddress(nint hModule, string lpProcName);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    internal static extern nint LoadLibrary(string lpFileName);
 }
